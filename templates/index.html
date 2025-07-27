@@ -108,6 +108,20 @@
             color: #ff6b6b;
         }
 
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 14px;
+            color: #cccccc;
+        }
+
+        .instructions {
+            margin-top: 20px;
+            font-size: 16px;
+            color: #ffffff;
+            text-align: center;
+        }
+
         @media (max-width: 600px) {
             input[type="text"] {
                 width: 100%;
@@ -136,6 +150,16 @@
             {% elif request.method == 'POST' %}
                 <p class="no-result">⚠️ No recommendations found. Please check the title and try again.</p>
             {% endif %}
+
+            <div class="instructions">
+                👉 Input should be movie name with correct sentence and year in parentheses.<br>
+                Example: <strong>Toy Story (1995)</strong>
+            </div>
+
+            <div class="footer">
+                Developed by <strong>Saibalaji and Sameena and Team</strong><br>
+                📧 Contact: <a href="mailto:saibalaji790@gmail.com" style="color: #00ffff;">saibalaji790@gmail.com</a>
+            </div>
         </div>
     </div>
 </body>
