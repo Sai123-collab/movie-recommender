@@ -1,13 +1,12 @@
 from flask import Flask, render_template, request
 import pandas as pd
+import numpy as np
 import os
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 
 app = Flask(__name__)
 
 # -----------------------------
-# Load data when needed (lazy)
+# Load data and similarity matrix once
 # -----------------------------
 def load_data():
     movies = pd.read_csv("ml-latest-small/movies.csv")
@@ -18,21 +17,20 @@ def load_data():
     merged['tag'] = merged['tag'].fillna('')
     merged['content'] = merged['genres'].str.replace('|', ' ') + ' ' + merged['tag']
 
-    tfidf = TfidfVectorizer(stop_words='english', max_features=5000)
-    tfidf_matrix = tfidf.fit_transform(merged['content'])
-    cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
+    return merged
 
-    return merged, cosine_sim
+# Load at startup
+merged = load_data()
+similarity = np.load("similarity.npy")
 
 # -----------------------------
 # Get recommendations
 # -----------------------------
 def get_recommendations(title):
-    merged, cosine_sim = load_data()
     if title not in merged['title'].values:
         return []
     idx = merged[merged['title'] == title].index[0]
-    sim_scores = list(enumerate(cosine_sim[idx]))
+    sim_scores = list(enumerate(similarity[idx]))
     sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)[1:6]
     movie_indices = [i[0] for i in sim_scores]
     return merged['title'].iloc[movie_indices].tolist()
