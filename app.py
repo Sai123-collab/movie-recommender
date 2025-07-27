@@ -6,28 +6,29 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 app = Flask(__name__)
 
-merged = None
-cosine_sim = None
-
+# -----------------------------
+# Load data when needed (lazy)
+# -----------------------------
 def load_data():
-    global merged, cosine_sim
-    if merged is None:
-        movies = pd.read_csv("ml-latest-small/movies.csv")
-        tags = pd.read_csv("ml-latest-small/tags.csv")
-        tags_grouped = tags.groupby('movieId')['tag'].apply(lambda x: ' '.join(x)).reset_index()
-        merged_data = pd.merge(movies, tags_grouped, on='movieId', how='left')
-        merged_data['tag'] = merged_data['tag'].fillna('')
-        merged_data['content'] = merged_data['genres'].str.replace('|', ' ') + ' ' + merged_data['tag']
+    movies = pd.read_csv("ml-latest-small/movies.csv")
+    tags = pd.read_csv("ml-latest-small/tags.csv")
 
-        tfidf = TfidfVectorizer(stop_words='english')
-        tfidf_matrix = tfidf.fit_transform(merged_data['content'])
-        cosine_sim_matrix = cosine_similarity(tfidf_matrix, tfidf_matrix)
+    tags_grouped = tags.groupby('movieId')['tag'].apply(lambda x: ' '.join(x)).reset_index()
+    merged = pd.merge(movies, tags_grouped, on='movieId', how='left')
+    merged['tag'] = merged['tag'].fillna('')
+    merged['content'] = merged['genres'].str.replace('|', ' ') + ' ' + merged['tag']
 
-        merged = merged_data
-        cosine_sim = cosine_sim_matrix
+    tfidf = TfidfVectorizer(stop_words='english', max_features=5000)
+    tfidf_matrix = tfidf.fit_transform(merged['content'])
+    cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
 
+    return merged, cosine_sim
+
+# -----------------------------
+# Get recommendations
+# -----------------------------
 def get_recommendations(title):
-    load_data()
+    merged, cosine_sim = load_data()
     if title not in merged['title'].values:
         return []
     idx = merged[merged['title'] == title].index[0]
@@ -36,6 +37,9 @@ def get_recommendations(title):
     movie_indices = [i[0] for i in sim_scores]
     return merged['title'].iloc[movie_indices].tolist()
 
+# -----------------------------
+# Routes
+# -----------------------------
 @app.route("/", methods=["GET", "POST"])
 def index():
     recommendations = []
@@ -44,6 +48,9 @@ def index():
         recommendations = get_recommendations(movie_name)
     return render_template("index.html", recommendations=recommendations)
 
+# -----------------------------
+# Run App
+# -----------------------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(debug=False, host="0.0.0.0", port=port)
